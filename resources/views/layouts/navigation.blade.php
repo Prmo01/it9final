@@ -24,8 +24,32 @@
                 </div>
 
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('categories.index')" :active="request()->routeIs('product.index')">
+                    <x-nav-link :href="route('categories.index')" :active="request()->routeIs('category.index')">
                         {{ __('Categories') }}
+                    </x-nav-link>
+                </div>
+
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('suppliers.index')" :active="request()->routeIs('suppliers.index')">
+                        {{ __('Suppliers') }}
+                    </x-nav-link>
+                </div>
+
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('stockin.index')" :active="request()->routeIs('stockin.index')">
+                        {{ __('Stock In') }}
+                    </x-nav-link>
+                </div>
+
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('transaction.index')" :active="request()->routeIs('transaction.index')">
+                        {{ __('Transact') }}
+                    </x-nav-link>
+                </div>
+
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('transaction_log.index')" :active="request()->routeIs('transaction_log.index')">
+                        {{ __('Transaction Log') }}
                     </x-nav-link>
                 </div>
 
