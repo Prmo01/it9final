@@ -14,55 +14,60 @@ class TransactionController extends Controller
     // Display the transaction page (cart)
     public function index()
     {
-        $cart = Session::get('cart', []);
+        // Retrieve all products
+        $products = Product::all();
         
-        // Calculate the total cost
-        $total = collect($cart)->sum(function ($item) {
+        // Get cart from session
+        $cart = session('cart', []);
+        $total = array_sum(array_map(function ($item) {
             return $item['price'] * $item['quantity'];
-        });
+        }, $cart));
 
-        return view('transaction.index', compact('cart', 'total'));
+        // Pass products, cart, and total to the view
+        return view('transaction.index', compact('products', 'cart', 'total'));
     }
 
-    // Add product to the cart by barcode or name
+    // Add productxxxxx to the cart by barcode or name
     public function addProduct(Request $request)
-    {
-        $request->validate([
-            'product_code' => 'required|string|max:255',
-        ]);
+{
+    $request->validate([
+        'product_code' => 'required|string|max:255',
+    ]);
 
-        $product = Product::where('barcode', $request->product_code)
-                        ->orWhere('name', 'like', '%' . $request->product_code . '%')
-                        ->first();
+    // Search for product by barcode, name, or product_id
+    $product = Product::where('barcode', $request->product_code)
+                    ->orWhere('name', 'like', '%' . $request->product_code . '%')
+                    ->orWhere('product_id', $request->product_code)
+                    ->first();
 
-        if (!$product) {
-            return redirect()->route('transaction.index')->with('error', 'Product not found!');
-        }
-
-        if ($product->quantity < 1) {
-            return redirect()->route('transaction.index')->with('error', 'Product is out of stock!');
-        }
-
-        $cart = Session::get('cart', []);
-
-        if (isset($cart[$product->product_id])) {
-            $currentQty = $cart[$product->product_id]['quantity'];
-            if ($currentQty + 1 > $product->quantity) {
-                return redirect()->route('transaction.index')->with('error', 'Cannot exceed available stock!');
-            }
-            $cart[$product->product_id]['quantity'] += 1;
-        } else {
-            $cart[$product->product_id] = [
-                'id'       => $product->product_id,
-                'name'     => $product->name,
-                'price'    => $product->sell_price,
-                'quantity' => 1,
-            ];
-        }
-
-        Session::put('cart', $cart);
-        return redirect()->route('transaction.index')->with('success', 'Product added!');
+    if (!$product) {
+        return redirect()->route('transaction.index')->with('error', 'Product not found!');
     }
+
+    if ($product->quantity < 1) {
+        return redirect()->route('transaction.index')->with('error', 'Product is out of stock!');
+    }
+
+    $cart = Session::get('cart', []);
+
+    if (isset($cart[$product->product_id])) {
+        $currentQty = $cart[$product->product_id]['quantity'];
+        if ($currentQty + 1 > $product->quantity) {
+            return redirect()->route('transaction.index')->with('error', 'Cannot exceed available stock!');
+        }
+        $cart[$product->product_id]['quantity'] += 1;
+    } else {
+        $cart[$product->product_id] = [
+            'id'       => $product->product_id,
+            'name'     => $product->name,
+            'price'    => $product->sell_price,
+            'quantity' => 1,
+        ];
+    }
+
+    Session::put('cart', $cart);
+    return redirect()->route('transaction.index')->with('success', 'Product added!');
+}
 
     // Update quantity of a product in the cart
     public function updateQuantity(Request $request, $id)
@@ -102,73 +107,101 @@ class TransactionController extends Controller
 
     // Complete the transaction (purchase)
     public function completeTransaction(Request $request)
-    {
-        $cart = Session::get('cart', []);
-    
-        if (empty($cart)) {
-            return redirect()->route('transaction.index')->with('error', 'Cart is empty!');
-        }
-    
-        // Get discount from the form, default to 0 if not provided
-        $discount = $request->input('discount', 0); 
-    
-        // Calculate total, including tax
-        $total = collect($cart)->sum(function ($item) {
-            return $item['price'] * $item['quantity'];
-        });
-    
-        $totalWithTax = $total * 1.12; // 12% Tax
-    
-        // Apply the discount to the total amount including tax
-        $finalTotal = $totalWithTax - $discount;
-    
-        if ($request->payment_amount < $finalTotal) {
-            return redirect()->route('transaction.index')->with('error', 'Insufficient payment amount!');
-        }
-    
-        // Get the payment method from the form
-        $paymentMethod = $request->input('payment_method'); 
-    
-        // Create the transaction record and get the transaction_id
-        $transaction = Transaction::create([
-            'total' => $total,
-            'discount' => $discount, // Save discount
-            'total_with_tax' => $totalWithTax,
-            'payment_method' => $paymentMethod,
-            'payment_amount' => $request->payment_amount,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    
-        // Ensure that transaction was created successfully and has an ID
-        if (!$transaction || !$transaction->id) {
-            return redirect()->route('transaction.index')->with('error', 'Transaction creation failed!');
-        }
-    
-        // Insert transaction items and update stock for each item in the cart
-        foreach ($cart as $item) {
-            $product = Product::find($item['id']);
-            if ($product) {
-                // Insert each item into the transaction_items table
-                TransactionItem::create([
-                    'transaction_id' => $transaction->id, // Use the correct transaction_id
-                    'product_id' => $item['id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'discount' => 0, // You can handle item-specific discounts if needed
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-    
-                // Deduct stock after the sale
-                $product->quantity -= $item['quantity'];
-                $product->save();
-            }
-        }
-    
-        // Clear the cart session
-        Session::forget('cart');
-    
-        return redirect()->route('transaction.index')->with('success', 'Transaction completed!');
+{
+    $cart = Session::get('cart', []);
+
+    if (empty($cart)) {
+        return redirect()->route('transaction.index')->with('error', 'Cart is empty!');
     }
+
+    // Validate inputs
+    $request->validate([
+        'discount' => 'nullable|numeric|min:0',
+        'payment_amount' => 'required|numeric|min:0',
+        'payment_method' => 'required|in:cash,card,online',
+    ]);
+
+    // Get discount from the form, default to 0 if not provided
+    $discount = $request->input('discount', 0);
+
+    // Calculate total, including tax
+    $total = collect($cart)->sum(function ($item) {
+        return $item['price'] * $item['quantity'];
+    });
+
+    $totalWithTax = $total * 1.12; // 12% Tax
+
+    // Apply the discount to the total amount including tax
+    $finalTotal = $totalWithTax - $discount;
+
+    if ($request->payment_amount < $finalTotal) {
+        return redirect()->route('transaction.index')->with('error', 'Insufficient payment amount!');
+    }
+
+    // Get the payment method from the form
+    $paymentMethod = $request->input('payment_method');
+
+    // Create the transaction record
+    $transaction = Transaction::create([
+        'total' => $total,
+        'discount' => $discount,
+        'total_with_tax' => $totalWithTax,
+        'payment_method' => $paymentMethod,
+        'payment_amount' => $request->payment_amount,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    if (!$transaction) {
+        return redirect()->route('transaction.index')->with('error', 'Failed to create transaction!');
+    }
+
+    $errors = []; // To collect any errors during item processing
+
+    // Insert transaction items and update stock for each item in the cart
+    foreach ($cart as $item) {
+        $product = Product::find($item['id']);
+        if ($product) {
+            // Check if enough stock is available
+            if ($product->quantity < $item['quantity']) {
+                $errors[] = "Insufficient stock for product: {$product->name}";
+                continue;
+            }
+
+            // Insert each item into the transaction_items table
+            TransactionItem::create([
+                'transaction_id' => $transaction->transaction_id,
+                'product_id' => $item['id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'discount' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Deduct stock after the sale
+            $product->quantity -= $item['quantity'];
+            $product->save();
+        } else {
+            $errors[] = "Product not found for ID: {$item['id']}";
+        }
+    }
+
+    // If there were errors, redirect with them
+    if (!empty($errors)) {
+        return redirect()->route('transaction.index')->with('error', implode(', ', $errors));
+    }
+
+    // Clear the cart session
+    Session::forget('cart');
+
+    // Eager load the items and their products
+    $transaction->load('items.product');
+
+    // Redirect to the transaction index with the transaction and modal trigger
+    return redirect()->route('transaction.index')
+                     ->with('success', 'Transaction completed!')
+                     ->with('showReceiptModal', true)
+                     ->with('transaction', $transaction);
+}
 }

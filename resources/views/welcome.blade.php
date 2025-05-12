@@ -12,8 +12,8 @@
     
     <style>
         :root {
-            --primary: #0E9F6E;
-            --primary-dark: #057a52;
+            --primary: #0b6599;
+            --primary-dark: #0b6599;
             --dark: #1b1b18;
             --light: #FDFDFC;
             --gray-100: #EDEDEC;
@@ -281,23 +281,23 @@
             <nav>
                 <div class="logo">
                     <span class="logo-icon">🛒</span>
-                    <span>Karl Grocery</span>
+                    <span>GroceriPOS</span>
                 </div>
                 <div class="nav-links">
                     <a href="{{ route('login') }}" class="btn btn-outline">Log In</a>
-                    <a href="{{ route('register') }}" class="btn btn-primary">Sign Up</a>
+                    
                 </div>
             </nav>
         </header>
         
         <main>
             <section class="hero">
-                <h1>Welcome to Karl Grocery System</h1>
-                <p>Your one-stop solution for all your grocery needs. Fresh, fast, and reliable delivery to your doorstep.</p>
+                <h1>Welcome to GroceriPOS</h1>
+                <p>Your one-stop solution for all your grocery needs.</p>
                 
                 <div class="cta">
                     <a href="{{ route('login') }}" class="btn btn-primary">Get Started</a>
-                    <a href="{{ route('register') }}" class="btn btn-outline">Create Account</a>
+                    
                 </div>
                 
                 <div class="features">

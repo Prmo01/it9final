@@ -9,7 +9,10 @@ class Transaction extends Model
 {
     use HasFactory;
 
-    protected $table = 'transactions'; // Define the table name if it's not pluralized correctly
+    protected $table = 'transactions';
+
+    // Define the primary key
+    protected $primaryKey = 'transaction_id';
 
     protected $fillable = [
         'total',
@@ -19,9 +22,9 @@ class Transaction extends Model
         'payment_amount',
     ];
 
-    // Define the relationship with TransactionItem (one-to-many)
+    // Define the relationship with TransactionItem
     public function items()
-{
-    return $this->hasMany(TransactionItem::class, 'transaction_id');
-}
+    {
+        return $this->hasMany(TransactionItem::class, 'transaction_id');
+    }
 }
