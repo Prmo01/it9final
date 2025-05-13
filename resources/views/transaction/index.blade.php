@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Point of Sale') }}
+            {{ __('Transaction') }}
         </h2>
     </x-slot>
 
@@ -685,7 +685,7 @@
                         printWindow.document.write(`
                             <html>
                                 <head>
-                                    <title>Transaction Receipt</title>
+                                    <title>Invoice</title>
                                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
                                     <style>
                                         body { font-family: Arial, sans-serif; padding: 20px; }

@@ -11,30 +11,24 @@ use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
-    // Display the transaction page (cart)
     public function index()
     {
-        // Retrieve all products
         $products = Product::all();
         
-        // Get cart from session
         $cart = session('cart', []);
         $total = array_sum(array_map(function ($item) {
             return $item['price'] * $item['quantity'];
         }, $cart));
 
-        // Pass products, cart, and total to the view
         return view('transaction.index', compact('products', 'cart', 'total'));
     }
 
-    // Add productxxxxx to the cart by barcode or name
     public function addProduct(Request $request)
 {
     $request->validate([
         'product_code' => 'required|string|max:255',
     ]);
 
-    // Search for product by barcode, name, or product_id
     $product = Product::where('barcode', $request->product_code)
                     ->orWhere('name', 'like', '%' . $request->product_code . '%')
                     ->orWhere('product_id', $request->product_code)
@@ -68,8 +62,6 @@ class TransactionController extends Controller
     Session::put('cart', $cart);
     return redirect()->route('transaction.index')->with('success', 'Product added!');
 }
-
-    // Update quantity of a product in the cart
     public function updateQuantity(Request $request, $id)
     {
         $request->validate([
@@ -95,7 +87,6 @@ class TransactionController extends Controller
         return response()->json(['error' => 'Product not in cart'], 404);
     }
 
-    // Remove a product from the cart
     public function removeProduct($id)
     {
         $cart = Session::get('cart', []);
@@ -105,7 +96,6 @@ class TransactionController extends Controller
         return redirect()->route('transaction.index')->with('success', 'Product removed!');
     }
 
-    // Complete the transaction (purchase)
     public function completeTransaction(Request $request)
 {
     $cart = Session::get('cart', []);
@@ -114,34 +104,28 @@ class TransactionController extends Controller
         return redirect()->route('transaction.index')->with('error', 'Cart is empty!');
     }
 
-    // Validate inputs
     $request->validate([
         'discount' => 'nullable|numeric|min:0',
         'payment_amount' => 'required|numeric|min:0',
         'payment_method' => 'required|in:cash,card,online',
     ]);
 
-    // Get discount from the form, default to 0 if not provided
     $discount = $request->input('discount', 0);
 
-    // Calculate total, including tax
     $total = collect($cart)->sum(function ($item) {
         return $item['price'] * $item['quantity'];
     });
 
-    $totalWithTax = $total * 1.12; // 12% Tax
+    $totalWithTax = $total * 1.12; 
 
-    // Apply the discount to the total amount including tax
     $finalTotal = $totalWithTax - $discount;
 
     if ($request->payment_amount < $finalTotal) {
         return redirect()->route('transaction.index')->with('error', 'Insufficient payment amount!');
     }
 
-    // Get the payment method from the form
     $paymentMethod = $request->input('payment_method');
 
-    // Create the transaction record
     $transaction = Transaction::create([
         'total' => $total,
         'discount' => $discount,
@@ -156,19 +140,16 @@ class TransactionController extends Controller
         return redirect()->route('transaction.index')->with('error', 'Failed to create transaction!');
     }
 
-    $errors = []; // To collect any errors during item processing
+    $errors = []; 
 
-    // Insert transaction items and update stock for each item in the cart
     foreach ($cart as $item) {
         $product = Product::find($item['id']);
         if ($product) {
-            // Check if enough stock is available
             if ($product->quantity < $item['quantity']) {
                 $errors[] = "Insufficient stock for product: {$product->name}";
                 continue;
             }
 
-            // Insert each item into the transaction_items table
             TransactionItem::create([
                 'transaction_id' => $transaction->transaction_id,
                 'product_id' => $item['id'],
@@ -179,7 +160,6 @@ class TransactionController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Deduct stock after the sale
             $product->quantity -= $item['quantity'];
             $product->save();
         } else {
@@ -187,18 +167,14 @@ class TransactionController extends Controller
         }
     }
 
-    // If there were errors, redirect with them
     if (!empty($errors)) {
         return redirect()->route('transaction.index')->with('error', implode(', ', $errors));
     }
 
-    // Clear the cart session
     Session::forget('cart');
 
-    // Eager load the items and their products
     $transaction->load('items.product');
 
-    // Redirect to the transaction index with the transaction and modal trigger
     return redirect()->route('transaction.index')
                      ->with('success', 'Transaction completed!')
                      ->with('showReceiptModal', true)

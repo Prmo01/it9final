@@ -16,8 +16,6 @@ class StockInController extends Controller
 {
     $query = StockOrder::with(['supplier', 'items.product'])
         ->orderBy('created_at', 'desc');
-
-    // Search filter
     if ($request->has('search') && !empty($request->search)) {
         $search = $request->search;
         $query->where(function($q) use ($search) {
@@ -29,7 +27,6 @@ class StockInController extends Controller
         });
     }
 
-    // Date filter
     if ($request->has('date') && !empty($request->date)) {
         $query->whereDate('created_at', $request->date);
     }
@@ -39,7 +36,6 @@ class StockInController extends Controller
         $query->where('status', $request->status);
     }
 
-    // Keep old input values for the form
     $filters = [
         'search' => $request->search,
         'date' => $request->date,
@@ -47,7 +43,7 @@ class StockInController extends Controller
     ];
 
     $stockOrders = $query->paginate(6)
-        ->appends($filters); // Preserve filters in pagination links
+        ->appends($filters); 
 
     $suppliers = Supplier::all();
     $products = Product::all();

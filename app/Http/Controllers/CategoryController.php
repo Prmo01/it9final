@@ -21,11 +21,10 @@ class CategoryController extends Controller
         }
     
         // Paginate results
-        $categories = $query->paginate(6); // Adjust the number of items per page as needed
+        $categories = $query->paginate(6);
     
         return view('categories.index', compact('categories'));
     }
-
 
     /**
      * Show the form for creating a new category.
@@ -63,7 +62,7 @@ class CategoryController extends Controller
      */
     public function edit(Category $category)
     {
-       
+        return view('categories.index', compact('category'));
     }
 
     /**

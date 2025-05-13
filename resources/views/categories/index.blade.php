@@ -21,24 +21,24 @@
                 margin-top: 1rem;
             }
             .custom-table thead th {
-                background-color: #f8f9fa; /* Light gray background for header */
+                background-color: #f8f9fa;
                 padding: 12px;
                 text-align: left;
                 font-weight: 600;
-                border-bottom: 2px solid #dee2e6; /* Add a bottom border to header */
+                border-bottom: 2px solid #dee2e6;
             }
             .custom-table tbody td {
                 padding: 12px;
-                border-bottom: 1px solid #dee2e6; /* Add a bottom border to rows */
+                border-bottom: 1px solid #dee2e6;
             }
             .custom-table tbody tr:hover {
-                background-color: #f8f9fa; /* Light gray background on hover */
+                background-color: #f8f9fa;
             }
             .custom-table tbody tr:last-child td {
-                border-bottom: none; /* Remove border from the last row */
+                border-bottom: none;
             }
             .action-buttons .btn {
-                margin-right: 5px; /* Add spacing between action buttons */
+                margin-right: 5px;
             }
             .search-filter-container {
                 display: flex;
@@ -94,9 +94,12 @@
                                         <td>{{ $category->description }}</td>
                                         <td class="action-buttons">
                                             <!-- Edit Button -->
-                                            <a href="{{ route('categories.edit', $category->category_id) }}" class="btn btn-warning btn-sm">
+                                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                                data-id="{{ $category->category_id }}"
+                                                data-name="{{ $category->category_name }}"
+                                                data-description="{{ $category->description }}">
                                                 <i class="bi bi-pencil"></i> Edit
-                                            </a>
+                                            </button>
                                             <!-- Delete Button -->
                                             <form action="{{ route('categories.destroy', $category->category_id) }}" method="POST" style="display:inline-block;">
                                                 @csrf
@@ -164,6 +167,47 @@
             </div>
         </div>
 
+        <!-- Edit Category Modal -->
+        <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="editCategoryModalLabel">Edit Category</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="editCategoryForm" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-body">
+                            <!-- Category Name -->
+                            <div class="form-group mb-3">
+                                <label for="edit_category_name" class="form-label">Category Name</label>
+                                <input type="text" name="category_name" id="edit_category_name" class="form-control" 
+                                    placeholder="Enter Category Name" maxlength="255" required>
+                                @error('category_name')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+
+                            <!-- Description -->
+                            <div class="form-group mb-3">
+                                <label for="edit_description" class="form-label">Description</label>
+                                <input type="text" name="description" id="edit_description" class="form-control" 
+                                    placeholder="Enter Description">
+                                @error('description')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Update Category</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
@@ -175,9 +219,35 @@
                     if (modal) {
                         modal.hide();
                     }
+                    let editModal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+                    if (editModal) {
+                        editModal.hide();
+                    }
                 });
             </script>
         @endif
+
+        <!-- Populate Edit Modal -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const editModal = document.getElementById('editCategoryModal');
+                editModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const id = button.getAttribute('data-id');
+                    const name = button.getAttribute('data-name');
+                    const description = button.getAttribute('data-description');
+
+                    const form = document.getElementById('editCategoryForm');
+                    form.action = `{{ route('categories.update', ':id') }}`.replace(':id', id);
+
+                    const nameInput = document.getElementById('edit_category_name');
+                    const descriptionInput = document.getElementById('edit_description');
+
+                    nameInput.value = name;
+                    descriptionInput.value = description || '';
+                });
+            });
+        </script>
     </body>
     </html>
 </x-app-layout>
